@@ -1,0 +1,4 @@
+scene_03316/2D_rendering/652089/panorama
+scene_03391/2D_rendering/191392/panorama
+scene_03393/2D_rendering/315/panorama
+scene_03450/2D_rendering/315/panorama

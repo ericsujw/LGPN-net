@@ -1,0 +1,8 @@
+scene_00036/2D_rendering/171/panorama
+scene_02182/2D_rendering/561841/panorama
+scene_02231/2D_rendering/568839/panorama
+scene_02235/2D_rendering/792708/panorama
+scene_02323/2D_rendering/908458/panorama
+scene_02368/2D_rendering/884881/panorama
+scene_02400/2D_rendering/581367/panorama
+scene_02995/2D_rendering/1765964975/panorama
