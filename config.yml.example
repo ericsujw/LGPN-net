@@ -49,4 +49,3 @@ SAMPLE_INTERVAL: 1000         # how many iterations to wait before sampling (0: 
 SAMPLE_SIZE: 8               # number of images to sample
 EVAL_INTERVAL: 5000              # how many iterations to wait before model evaluation (0: never)
 LOG_INTERVAL: 10              # how many iterations to wait before logging training status (0: never)
-
