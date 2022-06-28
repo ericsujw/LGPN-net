@@ -22,8 +22,8 @@ class BaseModel(nn.Module):
         self.config = config
         self.iteration = 0
 
-        self.gen_weights_path = os.path.join(config.PATH, name + '_gen.pth')
-        self.dis_weights_path = os.path.join(config.PATH, name + '_dis.pth')
+        self.gen_weights_path = os.path.join(config.PATH, name + f'_gen_{self.iteration}.pth')
+        self.dis_weights_path = os.path.join(config.PATH, name + f'_dis_{self.iteration}.pth')
 
     def load(self):
         if os.path.exists(self.gen_weights_path):
@@ -53,11 +53,11 @@ class BaseModel(nn.Module):
         torch.save({
             'iteration': self.iteration,
             'generator': self.generator.state_dict()
-        }, self.gen_weights_path)
+        }, self.gen_weights_path.replace('.pth', f'_{self.iteration}.pth'))
 
         torch.save({
             'discriminator': self.discriminator.state_dict()
-        }, self.dis_weights_path)
+        }, self.dis_weights_path.replace('.pth', f'_{self.iteration}.pth'))
 
 
 

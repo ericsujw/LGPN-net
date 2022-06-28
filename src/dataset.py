@@ -123,8 +123,8 @@ class Dataset(torch.utils.data.Dataset):
             empty_semantic_map = imread(self.data[index].replace('full_gt', 'empty_semantic'), mode='P')
             full_semantic_map = imread(self.data[index].replace('full_gt', 'full_semantic'), mode='P')
             
-        empty_semantic_map = scipy.misc.imresize(empty_semantic_map.astype(np.uint8), [imgh, imgw], interp='nearest')
-        full_semantic_map = scipy.misc.imresize(full_semantic_map.astype(np.uint8), [imgh, imgw], interp='nearest')
+        empty_semantic_map = cv2.resize(empty_semantic_map.astype(np.uint8), (imgw, imgh), cv2.INTER_NEAREST)
+        full_semantic_map = cv2.resize(full_semantic_map.astype(np.uint8), (imgw, imgh), cv2.INTER_NEAREST)
             
         foreground = 255 * ((full_semantic_map != CEILING_ID).astype(np.uint8) * (full_semantic_map != FLOOR_ID).astype(np.uint8) * (full_semantic_map != WALL_ID).astype(np.uint8))
         img = np.where(foreground.astype(np.bool)[...,None], full, empty)
@@ -142,7 +142,7 @@ class Dataset(torch.utils.data.Dataset):
         # edge = self.load_edge(img_gray, index, mask)
 
         # load layout
-        layout = self.load_layout_binary(img_gray, index)
+        layout = img_gray
 
         # load layout ont-hot
         # layout_ont_hot, plane_ont_hot = self.load_layout_instance(img, index)
@@ -154,7 +154,7 @@ class Dataset(torch.utils.data.Dataset):
 
 
         # return self.to_tensor(img), self.to_tensor(edge), self.to_tensor(mask), self.to_tensor(layout)
-        return self.to_tensor(img), self.to_tensor(mask), self.to_tensor(layout), self.to_tensor(empty)
+        return self.to_tensor(empty), self.to_tensor(mask), self.to_tensor(layout), self.to_tensor(empty)
         # return self.to_tensor(img), self.to_tensor(mask), self.to_tensor(layout)
 
     def load_edge(self, img, index, mask):
@@ -245,7 +245,7 @@ class Dataset(torch.utils.data.Dataset):
                 else:
                     if self._dilate_convex_mask:
                         kernel = np.ones((3, 3), np.uint8)
-                        mask = cv2.dilate(mask, kernel, iterations=1, borderValue=255)
+                        mask = cv2.dilate(mask, kernel, iterations=1)
                         
             return mask
             
@@ -449,7 +449,7 @@ class Dataset(torch.utils.data.Dataset):
             i = (imgw - side) // 2
             img = img[j:j + side, i:i + side, ...]
 
-        img = scipy.misc.imresize(img, [height, width])
+        img = cv2.resize(img, (width, height))
 
         return img
 
