@@ -67,7 +67,7 @@ class SIInpaintingModel(BaseModel):
         torch.autograd.set_detect_anomaly(True)
         # generator input: [rgb(3) + edge(1)]
         # discriminator input: [rgb(3)]
-        generator = SIGenerator()
+        generator = SIGenerator(self.config)
         discriminator = SIDiscriminator(in_channels=3, use_sigmoid=config.GAN_LOSS != 'hinge')
         if len(config.GPU) > 1:
             generator = nn.DataParallel(generator, config.GPU)
@@ -190,10 +190,10 @@ class SIInpaintingModel(BaseModel):
             images_with_masks = images * (1. - masks)
             images_merge_outputs = outputs * masks + images * (1. - masks)
             # layout_one_hot_v = self.VizWithClasses(seg)
-            layout_v = torch.cat((layout, layout, layout), dim=1)
+            # layout_v = torch.cat((layout, layout, layout), dim=1)
             layout_guidence_v = torch.cat((layout_guidence, layout_guidence, layout_guidence), dim=1)
             seg_p_viz = self.seg_p_visualization(seg_p)
-            self.viz['IO_image'] = torch.cat([images, images_with_masks, images_merge_outputs, emptys, outputs, seg, seg_p_viz, layout_guidence_v, layout_v], dim=3)
+            self.viz['IO_image'] = torch.cat([images, images_with_masks, images_merge_outputs, emptys, outputs, seg, seg_p_viz, layout_guidence_v], dim=3)
 
 
         return outputs, gen_loss, dis_loss, logs
@@ -412,12 +412,21 @@ class SIInpaintingModel(BaseModel):
 
         ### HorizonNet only support 1024*512 resolution
         images_masked_1024_512 = F.interpolate(images_masked, size=[512, 1024], mode='nearest')
-        y_bon, y_cor = self.horizon_net(images_masked_1024_512)
+        
+        if self.config.MODE == 2 or self.config.LAYOUT == 2:
+            y_bon, y_cor = self.horizon_net(images_masked_1024_512)
+        else:
+            y_bon, y_cor = torch.split(layout, [2, 1], dim=1)
+
         ### get 3-class & plane-wise instance map
         seg, seg_p, layout_guidence = self.layout_p_map(images_masked_1024_512, y_bon, y_cor, type='one')
 
-        # inputs = torch.cat((images_masked, masks), dim=1)
-        outputs = self.generator(images_masked, masks, seg, seg_p, layout_guidence)                                    # in: [rgb(3) + edge(1)]
+        if self.config.PLANE == 1:
+            # inputs = torch.cat((images_masked, masks), dim=1)
+            outputs = self.generator(images_masked, masks, seg, seg_p, layout_guidence)                                    # in: [rgb(3) + edge(1)]
+        else:
+            outputs = self.generator(images_masked, masks, seg, seg, layout_guidence)                                    # in: [rgb(3) + edge(1)]
+        
         return outputs, seg, seg_p, layout_guidence
 
     def backward(self, gen_loss=None, dis_loss=None):

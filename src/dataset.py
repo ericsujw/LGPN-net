@@ -22,6 +22,10 @@ import time
 import logging
 from .misc.panorama import draw_boundary_from_cor_id
 
+from shapely.geometry import LineString
+from scipy.spatial.distance import cdist
+from .misc import panostretch
+
 FLOOR_ID = 2
 WALL_ID = 1
 CEILING_ID = 22
@@ -55,6 +59,8 @@ class Dataset(torch.utils.data.Dataset):
         self._random_mask_side_size_percentage = 0.3
         self._random_mask_side_deviation_percentage = 0.1
 
+        self.structure3D_path = '/CGVLAB3/datasets/Structured3D'
+
         # in test mode, there's a one-to-one relationship between mask and image masks are loaded non random
         if config.MODE == 2:
             self.mask = 6
@@ -77,6 +83,7 @@ class Dataset(torch.utils.data.Dataset):
 
     def load_name(self, index):
         name = self.data[index]
+        # return '_'.join(name.split('/')) + '.png'
         return os.path.basename(name)
 
     def load_item(self, index):
@@ -84,56 +91,46 @@ class Dataset(torch.utils.data.Dataset):
         
         ### load empty room panorama
         if self.training:
-        # load image
-        # D:\Data\IndoorScene\structure3D\Structured3D\scene_00000\2D_rendering\485142\panorama\empty
-            path = os.path.join('/CGVLAB3/datasets/Structured3D', self.data[index], 'empty/rgb_rawlight.png')
+            path = os.path.join(self.structure3D_path, self.data[index], 'empty/rgb_rawlight.png')
             empty = imread(path, mode='RGB')
         else:
-            # path = os.path.join('../evaluation/raw', 'raw_' + str(format(index+1, '05d')) + '.png')
             path = self.data[index]
             empty = imread(path, mode='RGB')
         
         ### load full room panorama
         if self.training:
-        # load image
-        # D:\Data\IndoorScene\structure3D\Structured3D\scene_00000\2D_rendering\485142\panorama\empty
-            path = os.path.join('/CGVLAB3/datasets/Structured3D', self.data[index], 'full/rgb_rawlight.png')
+            path = os.path.join(self.structure3D_path, self.data[index], 'full/rgb_rawlight.png')
             full = imread(path, mode='RGB')
         else:
-            # path = os.path.join('../evaluation/raw', 'raw_' + str(format(index+1, '05d')) + '.png')
             path = self.data[index]
             full = imread(path, mode='RGB')
-            
-        # gray to rgb
-        #if len(img.shape) < 3:
-        empty = gray2rgb(empty)
-        full = gray2rgb(full)
             
         # resize/crop if needed
         if size != 0:
             empty = self.resize(empty, size[0], size[1])
             full = self.resize(full, size[0], size[1])
         
-        ### load empty/full room semantic segmentation
-        imgh, imgw = empty.shape[0:2]
-        if self.training:
-            empty_semantic_map = imread(os.path.join('/CGVLAB3/datasets/Structured3D', self.data[index], 'empty/semantic.png'), mode='P')
-            full_semantic_map = imread(os.path.join('/CGVLAB3/datasets/Structured3D', self.data[index], 'full/semantic.png'), mode='P')
+        if self.config.MASK == 7 or self.config.FURNISHED == 1:
+            ### load empty/full room semantic segmentation
+            imgh, imgw = empty.shape[0:2]
+            if self.training:
+                empty_semantic_map = imread(os.path.join(self.structure3D_path, self.data[index], 'empty/semantic.png'), mode='P')
+                full_semantic_map = imread(os.path.join(self.structure3D_path, self.data[index], 'full/semantic.png'), mode='P')
+            else:
+                empty_semantic_map = imread(self.data[index].replace('full_gt', 'empty_semantic'), mode='P')
+                full_semantic_map = imread(self.data[index].replace('full_gt', 'full_semantic'), mode='P')
+                
+            empty_semantic_map = cv2.resize(empty_semantic_map.astype(np.uint8), (imgw, imgh), cv2.INTER_NEAREST)
+            full_semantic_map = cv2.resize(full_semantic_map.astype(np.uint8), (imgw, imgh), cv2.INTER_NEAREST)
         else:
-            empty_semantic_map = imread(self.data[index].replace('full_gt', 'empty_semantic'), mode='P')
-            full_semantic_map = imread(self.data[index].replace('full_gt', 'full_semantic'), mode='P')
-            
-        empty_semantic_map = cv2.resize(empty_semantic_map.astype(np.uint8), (imgw, imgh), cv2.INTER_NEAREST)
-        full_semantic_map = cv2.resize(full_semantic_map.astype(np.uint8), (imgw, imgh), cv2.INTER_NEAREST)
-            
-        foreground = 255 * ((full_semantic_map != CEILING_ID).astype(np.uint8) * (full_semantic_map != FLOOR_ID).astype(np.uint8) * (full_semantic_map != WALL_ID).astype(np.uint8))
-        img = np.where(foreground.astype(np.bool)[...,None], full, empty)
+            empty_semantic_map = None
+            full_semantic_map = None
         
-        
-
-
-        # create grayscale image
-        img_gray = rgb2gray(img)
+        if self.config.FURNISHED == 1:
+            foreground = 255 * ((full_semantic_map != CEILING_ID).astype(np.uint8) * (full_semantic_map != FLOOR_ID).astype(np.uint8) * (full_semantic_map != WALL_ID).astype(np.uint8))
+            img = np.where(foreground.astype(np.bool)[...,None], full, empty)
+        else:
+            img = empty
 
         # load mask
         mask = self.load_mask(img, index, empty_semantic_map, full_semantic_map)
@@ -142,20 +139,9 @@ class Dataset(torch.utils.data.Dataset):
         # edge = self.load_edge(img_gray, index, mask)
 
         # load layout
-        layout = img_gray
+        bon, y_cor = self.load_layout_horizon_net(index)
 
-        # load layout ont-hot
-        # layout_ont_hot, plane_ont_hot = self.load_layout_instance(img, index)
-        #
-        # pad = 100
-        # c, h, w = plane_ont_hot.size()
-        # padding = torch.zeros(pad-c, h, w)
-        # plane_ont_hot = torch.cat((plane_ont_hot, padding), 0)
-
-
-        # return self.to_tensor(img), self.to_tensor(edge), self.to_tensor(mask), self.to_tensor(layout)
-        return self.to_tensor(empty), self.to_tensor(mask), self.to_tensor(layout), self.to_tensor(empty)
-        # return self.to_tensor(img), self.to_tensor(mask), self.to_tensor(layout)
+        return self.to_tensor(img), self.to_tensor(mask), torch.cat((bon, y_cor)), self.to_tensor(empty)
 
     def load_edge(self, img, index, mask):
         sigma = self.sigma
@@ -345,7 +331,7 @@ class Dataset(torch.utils.data.Dataset):
     def load_layout_instance(self, img, index):
         imgh, imgw = img.shape[0:2]
         if self.training:
-            cor_id_path = os.path.join('/CGVLAB3/datasets/Structured3D', self.data[index], 'layout.txt')
+            cor_id_path = os.path.join(self.structure3D_path, self.data[index], 'layout.txt')
         else:
             cor_id_path = self.data[index].replace('full_gt', 'layout_txt').replace('png', 'txt')
         cor_id = np.loadtxt(cor_id_path)
@@ -483,4 +469,144 @@ class Dataset(torch.utils.data.Dataset):
 
             for item in sample_loader:
                 yield item
+    
+    def load_layout_horizon_net(self, index):
+        """
+        Copy from https://github.com/sunset1995/HorizonNet/blob/master/dataset.py
+        """
+        if self.training:
+            cor_id_path = os.path.join(self.structure3D_path, self.data[index], 'layout.txt')
+        else:
+            return torch.FloatTensor(), torch.FloatTensor()
 
+        H, W = 512, 1024
+
+        # Read ground truth corners
+        with open(cor_id_path) as f:
+            cor = np.array([line.strip().split() for line in f if line.strip()], np.float32)
+
+            # Corner with minimum x should at the beginning
+            cor = np.roll(cor[:, :2], -2 * np.argmin(cor[::2, 0]), 0)
+
+            # Detect occlusion
+            occlusion = find_occlusion(cor[::2].copy()).repeat(2)
+            assert (np.abs(cor[0::2, 0] - cor[1::2, 0]) > W/100).sum() == 0, path
+            assert (cor[0::2, 1] > cor[1::2, 1]).sum() == 0, path
+        
+        # Prepare 1d ceiling-wall/floor-wall boundary
+        bon = cor_2_1d(cor, H, W)
+
+        # Prepare 1d wall-wall probability
+        corx = cor[~occlusion, 0]
+        dist_o = cdist(corx.reshape(-1, 1),
+                       np.arange(W).reshape(-1, 1),
+                       p=1)
+        dist_r = cdist(corx.reshape(-1, 1),
+                       np.arange(W).reshape(-1, 1) + W,
+                       p=1)
+        dist_l = cdist(corx.reshape(-1, 1),
+                       np.arange(W).reshape(-1, 1) - W,
+                       p=1)
+        dist = np.min([dist_o, dist_r, dist_l], 0)
+        nearest_dist = dist.min(0)
+        y_cor = (0.96 ** nearest_dist).reshape(1, -1)
+
+        # Convert all data to tensor
+        bon = torch.FloatTensor(bon.copy())
+        y_cor = torch.FloatTensor(y_cor.copy())
+
+        return bon, y_cor
+
+def cor_2_1d(cor, H, W):
+    bon_ceil_x, bon_ceil_y = [], []
+    bon_floor_x, bon_floor_y = [], []
+    n_cor = len(cor)
+    for i in range(n_cor // 2):
+        xys = panostretch.pano_connect_points(cor[i*2],
+                                              cor[(i*2+2) % n_cor],
+                                              z=-50, w=W, h=H)
+        bon_ceil_x.extend(xys[:, 0])
+        bon_ceil_y.extend(xys[:, 1])
+    for i in range(n_cor // 2):
+        xys = panostretch.pano_connect_points(cor[i*2+1],
+                                              cor[(i*2+3) % n_cor],
+                                              z=50, w=W, h=H)
+        bon_floor_x.extend(xys[:, 0])
+        bon_floor_y.extend(xys[:, 1])
+    bon_ceil_x, bon_ceil_y = sort_xy_filter_unique(bon_ceil_x, bon_ceil_y, y_small_first=True)
+    bon_floor_x, bon_floor_y = sort_xy_filter_unique(bon_floor_x, bon_floor_y, y_small_first=False)
+    bon = np.zeros((2, W))
+    bon[0] = np.interp(np.arange(W), bon_ceil_x, bon_ceil_y, period=W)
+    bon[1] = np.interp(np.arange(W), bon_floor_x, bon_floor_y, period=W)
+    bon = ((bon + 0.5) / H - 0.5) * np.pi
+    return bon
+
+
+def sort_xy_filter_unique(xs, ys, y_small_first=True):
+    xs, ys = np.array(xs), np.array(ys)
+    idx_sort = np.argsort(xs + ys / ys.max() * (int(y_small_first)*2-1))
+    xs, ys = xs[idx_sort], ys[idx_sort]
+    _, idx_unique = np.unique(xs, return_index=True)
+    xs, ys = xs[idx_unique], ys[idx_unique]
+    assert np.all(np.diff(xs) > 0)
+    return xs, ys
+
+
+def find_occlusion(coor):
+    u = panostretch.coorx2u(coor[:, 0])
+    v = panostretch.coory2v(coor[:, 1])
+    x, y = panostretch.uv2xy(u, v, z=-50)
+    occlusion = []
+    for i in range(len(x)):
+        raycast = LineString([(0, 0), (x[i], y[i])])
+        other_layout = []
+        for j in range(i+1, len(x)):
+            other_layout.append((x[j], y[j]))
+        for j in range(0, i):
+            other_layout.append((x[j], y[j]))
+        other_layout = LineString(other_layout)
+        occlusion.append(raycast.intersects(other_layout))
+    return np.array(occlusion)
+
+
+def cor2xybound(cor):
+    ''' Helper function to clip max/min stretch factor '''
+    corU = cor[0::2]
+    corB = cor[1::2]
+    zU = -50
+    u = panostretch.coorx2u(corU[:, 0])
+    vU = panostretch.coory2v(corU[:, 1])
+    vB = panostretch.coory2v(corB[:, 1])
+
+    x, y = panostretch.uv2xy(u, vU, z=zU)
+    c = np.sqrt(x**2 + y**2)
+    zB = c * np.tan(vB)
+    xmin, xmax = x.min(), x.max()
+    ymin, ymax = y.min(), y.max()
+
+    S = 3 / abs(zB.mean() - zU)
+    dx = [abs(xmin * S), abs(xmax * S)]
+    dy = [abs(ymin * S), abs(ymax * S)]
+
+    return min(dx), min(dy), max(dx), max(dy)
+
+
+def visualize_a_data(x, y_bon, y_cor):
+    x = (x.numpy().transpose([1, 2, 0]) * 255).astype(np.uint8)
+    y_bon = y_bon.numpy()
+    y_bon = ((y_bon / np.pi + 0.5) * x.shape[0]).round().astype(int)
+    y_cor = y_cor.numpy()
+
+    gt_cor = np.zeros((30, 1024, 3), np.uint8)
+    gt_cor[:] = y_cor[0][None, :, None] * 255
+    img_pad = np.zeros((3, 1024, 3), np.uint8) + 255
+
+    img_bon = (x.copy() * 0.5).astype(np.uint8)
+    y1 = np.round(y_bon[0]).astype(int)
+    y2 = np.round(y_bon[1]).astype(int)
+    y1 = np.vstack([np.arange(1024), y1]).T.reshape(-1, 1, 2)
+    y2 = np.vstack([np.arange(1024), y2]).T.reshape(-1, 1, 2)
+    img_bon[y_bon[0], np.arange(len(y_bon[0])), 1] = 255
+    img_bon[y_bon[1], np.arange(len(y_bon[1])), 1] = 255
+
+    return np.concatenate([gt_cor, img_pad, img_bon], 0)

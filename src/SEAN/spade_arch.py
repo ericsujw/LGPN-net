@@ -117,22 +117,36 @@ class ResnetBlock(nn.Module):
 
 
 class Zencoder(torch.nn.Module):
-    def __init__(self, input_nc, output_nc, ngf=32, n_downsampling=2, norm_layer=nn.InstanceNorm2d):
+    def __init__(self, input_nc, output_nc, ngf=32, n_downsampling=2, norm_layer=nn.InstanceNorm2d, partial=1):
         super(Zencoder, self).__init__()
         self.output_nc = output_nc
+        self.partial = partial
 
-        # modification
-        # self.model_1_1 = nn.ReflectionPad2d(1)
-        self.model_1_p_conv = PartialConv2d(input_nc, ngf, 3, 1, 1, multi_channel=False, bias=True)
-        self.model_1_2 = nn.Sequential(norm_layer(ngf), nn.LeakyReLU(0.2, False))
-        ### downsample
-        mult = 1
-        self.model_2_p_conv = PartialConv2d(ngf * mult, ngf * mult * 2, 3, 2, 1, multi_channel=False, bias=True)
-        self.model_2_2 = nn.Sequential(norm_layer(ngf * mult * 2), nn.LeakyReLU(0.2, False))
-        mult = 2
-        self.model_3_p_conv = PartialConv2d(ngf * mult, ngf * mult * 2, 3, 2, 1, multi_channel=False, bias=True)
-        self.model_3_2 = nn.Sequential(norm_layer(ngf * mult * 2), nn.LeakyReLU(0.2, False))
-        # modification
+        if self.partial == 0:
+            self.model_1_1 = nn.ReflectionPad2d(1)
+            self.model_1_conv = nn.Conv2d(input_nc, ngf, 3, 1, 1)
+            self.model_1_2 = nn.Sequential(norm_layer(ngf), nn.LeakyReLU(0.2, False))
+            ### downsample
+            mult = 1
+            self.model_2_conv = nn.Conv2d(ngf * mult, ngf * mult * 2, 3, 2, 1)
+            self.model_2_2 = nn.Sequential(norm_layer(ngf * mult * 2), nn.LeakyReLU(0.2, False))
+            mult = 2
+            self.model_3_conv = nn.Conv2d(ngf * mult, ngf * mult * 2, 3, 2, 1)
+            self.model_3_2 = nn.Sequential(norm_layer(ngf * mult * 2), nn.LeakyReLU(0.2, False))
+
+        else:
+            # modification
+            # self.model_1_1 = nn.ReflectionPad2d(1)
+            self.model_1_p_conv = PartialConv2d(input_nc, ngf, 3, 1, 1, multi_channel=False, bias=True)
+            self.model_1_2 = nn.Sequential(norm_layer(ngf), nn.LeakyReLU(0.2, False))
+            ### downsample
+            mult = 1
+            self.model_2_p_conv = PartialConv2d(ngf * mult, ngf * mult * 2, 3, 2, 1, multi_channel=False, bias=True)
+            self.model_2_2 = nn.Sequential(norm_layer(ngf * mult * 2), nn.LeakyReLU(0.2, False))
+            mult = 2
+            self.model_3_p_conv = PartialConv2d(ngf * mult, ngf * mult * 2, 3, 2, 1, multi_channel=False, bias=True)
+            self.model_3_2 = nn.Sequential(norm_layer(ngf * mult * 2), nn.LeakyReLU(0.2, False))
+            # modification
 
         model = []
         # model = [nn.ReflectionPad2d(1), PartialConv2d(input_nc, ngf, 3, 1, 0, multi_channel=True, bias=True),
@@ -160,13 +174,24 @@ class Zencoder(torch.nn.Module):
 
     # added partial convolution
     def forward(self, input, mask, segmap):
-        # x = self.model_1_1(input)
-        x, m1 = self.model_1_p_conv(input, mask)
-        x = self.model_1_2(x)
-        x, m2 = self.model_2_p_conv(x, m1)
-        x = self.model_2_2(x)
-        x, m3 = self.model_3_p_conv(x, m2)
-        x = self.model_3_2(x)
+
+        if self.partial == 0:
+            x = self.model_1_1(input)
+            x = self.model_1_conv(input)
+            x = self.model_1_2(x)
+            x = self.model_2_conv(x)
+            x = self.model_2_2(x)
+            x = self.model_3_conv(x)
+            x = self.model_3_2(x)
+        
+        else:
+            # x = self.model_1_1(input)
+            x, m1 = self.model_1_p_conv(input, mask)
+            x = self.model_1_2(x)
+            x, m2 = self.model_2_p_conv(x, m1)
+            x = self.model_2_2(x)
+            x, m3 = self.model_3_p_conv(x, m2)
+            x = self.model_3_2(x)
 
         codes = self.model(x)
 

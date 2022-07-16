@@ -39,10 +39,14 @@ class BaseNetwork(nn.Module):
 
 
 class SIGenerator(BaseNetwork):
-    def __init__(self, residual_blocks=8, init_weights=True):
+    def __init__(self, config, residual_blocks=8, init_weights=True):
         super(SIGenerator, self).__init__()
-        in_channels = 5         # rgb(3)+mask(1)+layout
-        # in_channels = 5         # rgb(3)+mask(1)+edge(1)
+        self.config = config
+
+        if self.config.LAYOUT_EDGE == 0:
+            in_channels = 4
+        else:
+            in_channels = 5         # rgb(3)+mask(1)+layout
 
         self.encoder = nn.Sequential(
             nn.ReflectionPad2d(3),
@@ -93,30 +97,43 @@ class SIGenerator(BaseNetwork):
             nn.Conv2d(in_channels=64, out_channels=3, kernel_size=7, padding=0),
         )
 
-        # style encoder
-        self.Zencoder = Zencoder(3, 512)
-        # planer-aware normalization layer
-        self.spade_block_1 = SPADEResnetBlock(256, 256, 3, device='cuda', Block_Name='up_0')
-        self.spade_block_2 = SPADEResnetBlock(128, 128, 3, device='cuda', Block_Name='up_1')
+        if self.config.SEAN == 1:
+            # style encoder
+            self.Zencoder = Zencoder(3, 512, partial=self.config.PARTIAL)
+            # planer-aware normalization layer
+            self.spade_block_1 = SPADEResnetBlock(256, 256, 3, device='cuda', Block_Name='up_0')
+            self.spade_block_2 = SPADEResnetBlock(128, 128, 3, device='cuda', Block_Name='up_1')
 
         if init_weights:
             self.init_weights()
 
     def forward(self, x, m, seg, seg_p, layout):
-        xm = torch.cat((x, m, layout), dim=1)
+        
+        if self.config.LAYOUT_EDGE == 0:
+            xm = torch.cat((x, m), dim=1)
+            
+        else:
+            xm = torch.cat((x, m, layout), dim=1)
+
         x_e = self.encoder(xm)
         x_m = self.middle(x_e)
 
-        # style encoding & normalization
-        style_codes = self.Zencoder(x, 1-m, seg_p)
-        # planer-aware normalization
-        z_1 = self.spade_block_1(x_m, seg, seg_p, style_codes)
-        x_d_1_0 = self.decoder_1(z_1)
-        x_d_1_1 = self.decoder_1_1(x_d_1_0)
-        z_2 = self.spade_block_2(x_d_1_1, seg, seg_p, style_codes)
-        x_d_2_0 = self.decoder_2(z_2)
-        x_d_2_1 = self.decoder_2_1(x_d_2_0)
+        if self.config.SEAN == 1:
+            # style encoding & normalization
+            style_codes = self.Zencoder(x, 1-m, seg_p)
+            # planer-aware normalization
+            z_1 = self.spade_block_1(x_m, seg, seg_p, style_codes)
+            x_d_1_0 = self.decoder_1(z_1)
+            x_d_1_1 = self.decoder_1_1(x_d_1_0)
+            z_2 = self.spade_block_2(x_d_1_1, seg, seg_p, style_codes)
+            x_d_2_0 = self.decoder_2(z_2)
+            x_d_2_1 = self.decoder_2_1(x_d_2_0)
 
+        else:
+            x_d_1_0 = self.decoder_1(x_m)
+            x_d_1_1 = self.decoder_1_1(x_d_1_0)
+            x_d_2_0 = self.decoder_2(x_d_1_1)
+            x_d_2_1 = self.decoder_2_1(x_d_2_0)
 
         img = self.img_out(x_d_2_1)
         img = (torch.tanh(img) + 1) / 2

@@ -276,7 +276,7 @@ class SIInpainting():
             self.postprocess(inputs),
             self.postprocess(seg),
             self.postprocess(layout_guidence),
-            self.postprocess(layout),
+            # self.postprocess(layout),
             self.postprocess(emptys),
             self.postprocess(outputs),
             self.postprocess(outputs_merged),
