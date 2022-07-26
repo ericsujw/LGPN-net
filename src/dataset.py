@@ -37,7 +37,7 @@ class Dataset(torch.utils.data.Dataset):
         super(Dataset, self).__init__()
         self.config = config
         self.augment = augment
-        self.training = True
+        self.training = training
         self.data = self.load_flist(flist)
         self.edge_data = self.load_flist(edge_flist)
         self.mask_data = self.load_flist(mask_flist)
@@ -55,12 +55,13 @@ class Dataset(torch.utils.data.Dataset):
         self.rng = random.Random(self.config.SEED)
         self._classes4masking = {3, 4, 5, 6, 7, 10, 11, 12, 14, 15, 17, 19, 24, 25, 29, 30, 32, 33, 34, 36}  # 40
         self._min_mask_area, self._max_mask_area = min_mask_area, max_mask_area
-        self._object_mask_only: bool = False
+        self._object_mask_only: bool = True
         self._dilate_convex_mask : bool = True
         self._random_mask_side_size_percentage = 0.3
         self._random_mask_side_deviation_percentage = 0.1
 
         self.structure3D_path = '/CGVLAB3/datasets/Structured3D'
+        self.np_rng = np.random.default_rng(self.config.SEED)
 
         # in test mode, there's a one-to-one relationship between mask and image masks are loaded non random
         if config.MODE == 2:
@@ -74,7 +75,7 @@ class Dataset(torch.utils.data.Dataset):
             item = self.load_item(index)
         # except Exception as e:
         #     print("failed!!!: "+str(e))
-        #     pass
+        #     item = []
         except:
             print('loading error: ' + self.data[index])
             
@@ -111,7 +112,7 @@ class Dataset(torch.utils.data.Dataset):
             empty = self.resize(empty, size[0], size[1])
             full = self.resize(full, size[0], size[1])
         
-        if self.config.MASK == 7 or self.config.FURNISHED == 1:
+        if self.config.MASK == 8 or self.config.MASK == 7 or self.config.FURNISHED == 1:
             ### load empty/full room semantic segmentation
             imgh, imgw = empty.shape[0:2]
             if self.training:
@@ -263,6 +264,11 @@ class Dataset(torch.utils.data.Dataset):
 
         # refer to PanoDR mask generator
         if mask_type == 7:
+            if self.training:
+                self._min_mask_area, self._max_mask_area = 0.06, 0.8
+            else:
+                self._min_mask_area, self._max_mask_area = 0.01, 0.8
+
             objects_empty, objects_full = self._extract_scene_objects(empty_semantic_map, full_semantic_map)
             candidate_objects_for_removal = self._select_candidates(objects_empty, objects_full)
 
@@ -281,10 +287,75 @@ class Dataset(torch.utils.data.Dataset):
                 else:
                     if self._dilate_convex_mask:
                         kernel = np.ones((3, 3), np.uint8)
-                        mask = cv2.dilate(mask, kernel, iterations=1)
-                        
-            return mask
-            
+                        mask = cv2.dilate(mask, kernel, iterations=1, borderValue=255)
+
+        if mask_type == 8:
+            mask = np.zeros((imgh, imgw), np.uint8)
+            r = self.np_rng.normal(loc=0.5, scale=0.05)
+            r = np.clip(r, 0.3, 0.7)
+            mh, mw = int(imgh * r), int(imgw * r)
+
+            objects_empty, objects_full = self._extract_scene_objects(empty_semantic_map, full_semantic_map)
+            candidate_objects_for_removal = list(self._select_candidates(objects_empty, objects_full))
+
+            if len(candidate_objects_for_removal) == 0:
+                rand_y, rand_x = self.rng.randint(int(mh / 4), imgh - int(mh / 4)), self.rng.randint(int(mw / 4), imgw - int(mw / 4))
+                mask = self.create_mask_center(rand_y, rand_x, mh, mw, imgh, imgw)
+            else:
+                chosen_id = self.rng.choice(candidate_objects_for_removal)
+                object_mask = full_semantic_map == chosen_id
+                
+                ys, xs = np.where(object_mask)
+                mean_y, mean_x = np.average(ys), np.average(xs)
+                
+                ys_r, _ = np.where(np.roll(object_mask, imgh // 2, axis=0))
+                _, xs_r = np.where(np.roll(object_mask, imgw // 2, axis=1))
+                mean_y_r, mean_x_r = np.average(ys_r), np.average(xs_r)
+
+                # yx, ry, rx, ryrx
+                masks = []
+                masks.append(self.create_mask_center(mean_y, mean_x, mh, mw, imgh, imgw))
+                masks.append(self.create_mask_center(mean_y_r, mean_x, mh, mw, imgh, imgw))
+                masks.append(self.create_mask_center(mean_y, mean_x_r, mh, mw, imgh, imgw))
+                masks.append(self.create_mask_center(mean_y_r, mean_x_r, mh, mw, imgh, imgw))
+
+                coverage = [np.sum(m * object_mask) for m in masks]
+                mask = masks[np.argmax(coverage)]
+
+        return mask
+
+    def create_mask_center(self, y, x, mh, mw, imgh, imgw):
+        mask = np.zeros((imgh, imgw), np.uint8)
+        py, px = int(y - mh / 2), int(x - mw / 2)
+
+        pxs = []
+        if px < 0:
+            pxs.append((0, px + mw))
+            pxs.append((px + imgw, imgw))
+        elif px + mw >= imgw:
+            pxs.append((px, imgw))
+            pxs.append((0, mw + px - imgw))
+        else:
+            pxs.append((px, px + mw))
+        
+        pys = []
+        if py < 0:
+            pys.append((0, mh))
+            # pys.append((0, py + mh))
+            # pys.append((py + imgh, imgh))
+        elif py + mh >= imgh:
+            pys.append((imgh - mh, imgh))
+            # pys.append((py, imgh))
+            # pys.append((0, mh + py - imgh))
+        else:
+            pys.append((py, py + mh))
+        
+        for y0, y1 in pys:
+            for x0, x1 in pxs:
+                mask[y0:y1, x0:x1] = 255
+        
+        return mask
+
     def _produce_random_mask(self) -> np.ndarray:
         min_size = min(self._width, self._height)
         width_size = int(min_size * (
