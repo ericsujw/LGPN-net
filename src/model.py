@@ -13,6 +13,8 @@ from .horizon_net import HorizonNet
 from .network import SIGenerator, SIDiscriminator
 from .loss import AdversarialLoss, PerceptualLoss, StyleLoss, LayoutSimilarityLoss_Horizon
 
+from .dataset import cors_from_horizon_net, cor_2_1d, find_occlusion
+from .misc.panorama import draw_boundary_from_cor_id
 
 class BaseModel(nn.Module):
     def __init__(self, name, config):
@@ -239,6 +241,85 @@ class SIInpaintingModel(BaseModel):
         return viz
 
     ### get 3-class & plane-wise instance map
+    def layout_p_map_post_proc_line(self, x, y_bon_, y_cor_, type='one'):
+        b, c, h, w = x.size()
+        input_size = self.config.INPUT_SIZE
+        h_o = input_size[0]
+        w_o = input_size[1]
+        layout_p = torch.zeros(b, 1, h_o, w_o).cuda()
+
+        raw_id = []
+        for i in range(b):
+            cor_ = cors_from_horizon_net(y_bon_[i:i+1].cpu().numpy(), torch.sigmoid(y_cor_)[i:i+1].cpu().numpy(), H=h, W=w)
+
+            occlusion = find_occlusion(cor_[::2].copy()).repeat(2)
+            cor_ = cor_[~occlusion]
+
+            cor_[:, 0] //= w // w_o
+            cor_[:, 1] //= h // h_o
+            panoEdgeC, _, _ = draw_boundary_from_cor_id(cor_, [h_o, w_o])
+            layout_p[i, 0] = torch.FloatTensor(panoEdgeC)
+            
+            raw_id.append(torch.LongTensor(cor_[0::2, 0]).cuda())
+        
+        lyt_seg = self.layout_seg(layout_p)
+
+        ### 3-class one-hot map & plane-wise one-hot map
+        segs = []
+        seg_ps = []
+        for i in range(b):
+            seg, seg_p = self.one_hot(lyt_seg[i], 3, raw_id[i]) # seg[b, 3, h, w], seg_p[b, n, h, w] n => plane nums
+            segs.append(seg)
+            seg_ps.append(seg_p)
+          
+        segs = torch.stack(segs)
+        seg_ps = torch.stack(seg_ps)
+
+        return segs, seg_ps, layout_p
+
+    def layout_p_map_post_proc(self, x, y_bon_, y_cor_, type='one'):
+        b, c, h, w = x.size()
+        input_size = self.config.INPUT_SIZE
+        h_o = input_size[0]
+        w_o = input_size[1]
+        layout_p = torch.zeros(b, 1, h_o, w_o).cuda()
+
+        raw_id = []
+        for i in range(b):
+            cor_ = cors_from_horizon_net(y_bon_[i:i+1].cpu().numpy(), torch.sigmoid(y_cor_)[i:i+1].cpu().numpy(), H=h, W=w)
+            bon_ = torch.FloatTensor(cor_2_1d(cor_, H=h, W=w))
+
+            y_bon = torch.nn.functional.interpolate(torch.unsqueeze(bon_, 0), size=w_o, mode='nearest')
+            y_bon = torch.clamp(((y_bon / np.pi + 0.5) * h_o).round().type(torch.int64), 0, h_o-1)
+            
+            layout_p[i, 0, y_bon[0, 0], torch.arange(w_o)] = 1
+            layout_p[i, 0, y_bon[0, 1], torch.arange(w_o)] = 1
+
+            occlusion = find_occlusion(cor_[::2].copy()).repeat(2)
+            cor_ = cor_[~occlusion]
+
+            cor_[:, 0] //= w // w_o
+            cor_[:, 1] //= h // h_o
+            # for ix in range(len(cor_[0::2])):
+            #     layout_p[i, 0, torch.arange(cor_[ix*2, 1], cor_[ix*2+1, 1]+1), cor_[ix*2, 0]] = 1
+
+            raw_id.append(torch.LongTensor(cor_[0::2, 0]).cuda())
+        
+        lyt_seg = self.layout_seg(layout_p)
+
+        ### 3-class one-hot map & plane-wise one-hot map
+        segs = []
+        seg_ps = []
+        for i in range(b):
+            seg, seg_p = self.one_hot(lyt_seg[i], 3, raw_id[i]) # seg[b, 3, h, w], seg_p[b, n, h, w] n => plane nums
+            segs.append(seg)
+            seg_ps.append(seg_p)
+          
+        segs = torch.stack(segs)
+        seg_ps = torch.stack(seg_ps)
+
+        return segs, seg_ps, layout_p
+
     def layout_p_map(self, x, y_bon, y_cor, type='one'):
         b, c, h, w = x.size()
         input_size = self.config.INPUT_SIZE
@@ -415,11 +496,11 @@ class SIInpaintingModel(BaseModel):
         
         if self.config.MODE == 2 or self.config.LAYOUT == 2:
             y_bon, y_cor = self.horizon_net(images_masked_1024_512)
-        else:
-            y_bon, y_cor = torch.split(layout, [2, 1], dim=1)
 
-        ### get 3-class & plane-wise instance map
-        seg, seg_p, layout_guidence = self.layout_p_map(images_masked_1024_512, y_bon, y_cor, type='one')
+            ### get 3-class & plane-wise instance map
+            seg, seg_p, layout_guidence = self.layout_p_map_post_proc(images_masked_1024_512, y_bon, y_cor, type='one')
+        else:
+            seg, seg_p, layout_guidence = torch.split(layout, [3, 100, 1], dim=1)
 
         if self.config.PLANE == 1:
             # inputs = torch.cat((images_masked, masks), dim=1)

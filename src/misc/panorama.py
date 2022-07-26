@@ -198,10 +198,10 @@ def draw_boundary_from_cor_id(cor_id, img_shape):
     cs_bot = np.array(cs_bot)
 
     #panoEdgeC = 2 * np.ones((im_h,im_w),dtype = np.uint8)
-    panoEdgeC = np.zeros((im_h,im_w),dtype = np.uint8)
-    for dx, dy in [[-1, 0], [1, 0], [0, 0], [0, 1], [0, -1]]:
-        panoEdgeC[np.clip(rs_top + dx, 0, im_h - 1), np.clip(cs_top + dy, 0, im_w - 1)] = 255
-        panoEdgeC[np.clip(rs_bot + dx, 0, im_h - 1), np.clip(cs_bot + dy, 0, im_w - 1)] = 255
+    # panoEdgeC = np.zeros((im_h,im_w),dtype = np.uint8)
+    # for dx, dy in [[-1, 0], [1, 0], [0, 0], [0, 1], [0, -1]]:
+    #     panoEdgeC[np.clip(rs_top + dx, 0, im_h - 1), np.clip(cs_top + dy, 0, im_w - 1)] = 255
+    #     panoEdgeC[np.clip(rs_bot + dx, 0, im_h - 1), np.clip(cs_bot + dy, 0, im_w - 1)] = 255
 
     # for i in range(len(rs_top)):
     #     panoEdgeC[:rs_top[i],cs_top[i]] = 1
@@ -209,9 +209,11 @@ def draw_boundary_from_cor_id(cor_id, img_shape):
     # for i in range(len(rs_bot)):
     #     panoEdgeC[rs_bot[i]:,cs_bot[i]] = 0
     
-    # panoEdgeC[np.clip(rs_top, 0, im_h - 1), np.clip(cs_top, 0, im_w - 1)] = 1
-    # panoEdgeC[np.clip(rs_bot, 0, im_h - 1), np.clip(cs_bot, 0, im_w - 1)] = 1
-
+    panoEdgeC = np.zeros((im_h,im_w))
+    panoEdgeC[np.clip(rs_top, 0, im_h - 1), np.clip(cs_top, 0, im_w - 1)] = 1
+    panoEdgeC[np.clip(rs_bot, 0, im_h - 1), np.clip(cs_bot, 0, im_w - 1)] = 1
+    for i in range(len(cor_all_top)):
+        panoEdgeC[np.arange(cor_all_top[i, 1], cor_all_bot[i, 1]), cor_all_top[i, 0]] = 1
 
     return panoEdgeC, rs_top, cs_top
 

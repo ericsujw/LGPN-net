@@ -22,9 +22,10 @@ import time
 import logging
 from .misc.panorama import draw_boundary_from_cor_id
 
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Polygon
 from scipy.spatial.distance import cdist
-from .misc import panostretch
+from scipy.ndimage.filters import maximum_filter
+from .misc import panostretch, post_proc
 
 FLOOR_ID = 2
 WALL_ID = 1
@@ -36,7 +37,7 @@ class Dataset(torch.utils.data.Dataset):
         super(Dataset, self).__init__()
         self.config = config
         self.augment = augment
-        self.training = training
+        self.training = True
         self.data = self.load_flist(flist)
         self.edge_data = self.load_flist(edge_flist)
         self.mask_data = self.load_flist(mask_flist)
@@ -83,7 +84,7 @@ class Dataset(torch.utils.data.Dataset):
 
     def load_name(self, index):
         name = self.data[index]
-        # return '_'.join(name.split('/')) + '.png'
+        return '_'.join(name.split('/')) + '.png'
         return os.path.basename(name)
 
     def load_item(self, index):
@@ -139,9 +140,58 @@ class Dataset(torch.utils.data.Dataset):
         # edge = self.load_edge(img_gray, index, mask)
 
         # load layout
-        bon, y_cor = self.load_layout_horizon_net(index)
+        if self.training:
+            cor_id_path = os.path.join(self.structure3D_path, self.data[index], 'layout.txt')
+            
+            # post_proc
+            h, w, h_o, w_o = 512, 1024, empty.shape[0], empty.shape[1]
+            
+            # bon, y_cor = self.load_layout_horizon_net(index)
+            # y_bon_ = torch.unsqueeze(bon, 0).numpy()
+            # y_cor_ = torch.sigmoid(torch.unsqueeze(y_cor, 0)).numpy()
 
-        return self.to_tensor(img), self.to_tensor(mask), torch.cat((bon, y_cor)), self.to_tensor(empty)
+            # Read ground truth corners
+            with open(cor_id_path) as f:
+                cor = np.array([line.strip().split() for line in f if line.strip()], np.int64)
+
+                # Corner with minimum x should at the beginning
+                cor_ = np.roll(cor[:, :2], -2 * np.argmin(cor[::2, 0]), 0)
+
+            # cor_ = cors_from_horizon_net(y_bon_, y_cor_)
+            bon_ = torch.FloatTensor(cor_2_1d(cor_, H=h, W=w))
+
+            y_bon = torch.nn.functional.interpolate(torch.unsqueeze(bon_, 0), size=w_o, mode='nearest')
+            y_bon = torch.clamp(((y_bon / np.pi + 0.5) * h_o).round().type(torch.int64), 0, h_o-1)
+            
+            layout_p = torch.zeros(1, h_o, w_o)
+            layout_p[0, y_bon[0, 0], torch.arange(w_o)] = 1
+            layout_p[0, y_bon[0, 1], torch.arange(w_o)] = 1
+
+            occlusion = find_occlusion(cor_[::2].copy()).repeat(2)
+            cor_ = cor_[~occlusion]
+
+            cor_[:, 0] //= w // w_o
+            cor_[:, 1] //= h // h_o
+            for ix in range(len(cor_[0::2])):
+                layout_p[0, torch.arange(cor_[ix*2, 1], cor_[ix*2+1, 1]+1), cor_[ix*2, 0]] = 1
+            
+            layout_seg = self.Layout2Semantic(layout_p[0])
+
+            raw_id = cor_[0::2, 0]
+            raw_id = np.insert(raw_id, 0, 0, axis=0)
+            raw_id = np.insert(raw_id, len(raw_id), w_o, axis=0)
+
+            layout_one_hot, plane_one_hot = self.one_hot(layout_seg.unsqueeze(0), 3, raw_id)
+
+            pad = 100
+            c, h, w = plane_one_hot.size()
+            padding = torch.zeros(pad-c, h, w)
+            plane_one_hot = torch.cat((plane_one_hot, padding), 0)
+
+        else:
+            layout_one_hot, plane_one_hot, layout_p = torch.FloatTensor(), torch.FloatTensor(), torch.FloatTensor()
+
+        return self.to_tensor(img), self.to_tensor(mask), torch.cat((layout_one_hot, plane_one_hot, layout_p)), self.to_tensor(empty)
 
     def load_edge(self, img, index, mask):
         sigma = self.sigma
@@ -610,3 +660,49 @@ def visualize_a_data(x, y_bon, y_cor):
     img_bon[y_bon[1], np.arange(len(y_bon[1])), 1] = 255
 
     return np.concatenate([gt_cor, img_pad, img_bon], 0)
+
+def find_N_peaks(signal, r=29, min_v=0.05, N=None):
+    max_v = maximum_filter(signal, size=r, mode='wrap')
+    pk_loc = np.where(max_v == signal)[0]
+    pk_loc = pk_loc[signal[pk_loc] > min_v]
+    if N is not None:
+        order = np.argsort(-signal[pk_loc])
+        pk_loc = pk_loc[order[:N]]
+        pk_loc = pk_loc[np.argsort(pk_loc)]
+    return pk_loc, signal[pk_loc]
+
+def cors_from_horizon_net(y_bon_, y_cor_, H=512, W=1024):
+    y_bon_ = (y_bon_[0] / np.pi + 0.5) * H - 0.5
+    y_bon_[0] = np.clip(y_bon_[0], 1, H/2-1)
+    y_bon_[1] = np.clip(y_bon_[1], H/2+1, H-2)
+    y_cor_ = y_cor_[0, 0]
+
+    # Init floor/ceil plane
+    z0 = 50
+    _, z1 = post_proc.np_refine_by_fix_z(*y_bon_, z0)
+
+    r = int(round(W * 0.05 / 2))
+    xs_ = find_N_peaks(y_cor_, r=r)[0]
+
+    # Generate wall-walls
+    cor, xy_cor = post_proc.gen_ww(xs_, y_bon_[0], z0, tol=abs(0.16 * z1 / 1.6), force_cuboid=False)
+
+    # Check valid (for fear self-intersection)
+    xy2d = np.zeros((len(xy_cor), 2), np.float32)
+    for i in range(len(xy_cor)):
+        xy2d[i, xy_cor[i]['type']] = xy_cor[i]['val']
+        xy2d[i, xy_cor[i-1]['type']] = xy_cor[i-1]['val']
+    if not Polygon(xy2d).is_valid:
+        print(
+            'Fail to generate valid general layout!! '
+            'Generate cuboid as fallback.')
+        xs_ = find_N_peaks(y_cor_, r=r, min_v=0, N=4)[0]
+        cor, xy_cor = post_proc.gen_ww(xs_, y_bon_[0], z0, tol=abs(0.16 * z1 / 1.6), force_cuboid=True)
+
+    # Expand with btn coory
+    # cor = np.hstack([cor, post_proc.infer_coory(cor[:, 1], z1 - z0, z0)[:, None]])
+    cor_ = np.zeros((cor.shape[0]*2, cor.shape[1]))
+    cor_[0::2] = cor
+    cor_[1::2] = np.hstack([cor[:, 0][:, None], post_proc.infer_coory(cor[:, 1], z1 - z0, z0)[:, None]])
+
+    return cor_.round().astype(np.int64)
