@@ -1452,7 +1452,7 @@ Webflow.define('brand', module.exports = function ($) {
     }
 
     if (shouldBrand && !isPhantom) {
-      brandElement = brandElement || createBadge();
+      brandElement = brandElement;
       ensureBrand();
       setTimeout(ensureBrand, 500);
       $(doc).off(fullScreenEvents, onFullScreenChange).on(fullScreenEvents, onFullScreenChange);
