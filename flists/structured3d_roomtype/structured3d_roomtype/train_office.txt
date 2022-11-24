@@ -1,0 +1,3 @@
+scene_02285/2D_rendering/296026/panorama
+scene_02285/2D_rendering/297660/panorama
+scene_02285/2D_rendering/301950/panorama
