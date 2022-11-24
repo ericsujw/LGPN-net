@@ -55,7 +55,7 @@ class Dataset(torch.utils.data.Dataset):
         self.rng = random.Random(self.config.SEED)
         self._classes4masking = {3, 4, 5, 6, 7, 10, 11, 12, 14, 15, 17, 19, 24, 25, 29, 30, 32, 33, 34, 36}  # 40
         self._min_mask_area, self._max_mask_area = min_mask_area, max_mask_area
-        self._object_mask_only: bool = True
+        self._object_mask_only: bool = False
         self._dilate_convex_mask : bool = True
         self._random_mask_side_size_percentage = 0.3
         self._random_mask_side_deviation_percentage = 0.1
@@ -85,8 +85,11 @@ class Dataset(torch.utils.data.Dataset):
 
     def load_name(self, index):
         name = self.data[index]
-        return '_'.join(name.split('/')) + '.png'
-        return os.path.basename(name)
+
+        if self.training:
+            return '_'.join(name.split('/')) + '.png'
+        else:
+            return os.path.basename(name)
 
     def load_item(self, index):
         size = self.input_size
@@ -124,6 +127,35 @@ class Dataset(torch.utils.data.Dataset):
                 
             empty_semantic_map = cv2.resize(empty_semantic_map.astype(np.uint8), (imgw, imgh), cv2.INTER_NEAREST)
             full_semantic_map = cv2.resize(full_semantic_map.astype(np.uint8), (imgw, imgh), cv2.INTER_NEAREST)
+        
+        elif self.config.MASK == 9:
+            empty_semantic_map = imread(os.path.join(self.structure3D_path, self.data[index], 'empty/semantic.png'), mode='P')
+            imgh, imgw = empty_semantic_map.shape[0:2]
+
+            mask = np.zeros((imgh, imgw), bool)
+            object_mask = ( (empty_semantic_map ==  8) | 
+                            (empty_semantic_map ==  9) | 
+                            (empty_semantic_map == 13) | 
+                            (empty_semantic_map == 16) | 
+                            (empty_semantic_map == 38) |
+                            (empty_semantic_map == 40) ).astype(np.uint8) * 255
+            
+            # kernel = np.ones((5, 5), np.uint8)
+            # object_mask = cv2.dilate(object_mask, kernel, iterations=3)
+
+            contours, _ = cv2.findContours(object_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[-2:]
+            for i in range(len(contours)):
+                hull = cv2.convexHull(contours[i])
+                h = np.zeros_like(object_mask)
+                h = cv2.fillConvexPoly(h, hull, (1)).astype(bool)
+                mask |= h
+            
+            mask = mask.astype(np.uint8) * 255
+
+            imgh, imgw = empty.shape[0:2]
+            empty_semantic_map = cv2.resize(mask, (imgw, imgh), cv2.INTER_NEAREST)
+            full_semantic_map = empty_semantic_map
+        
         else:
             empty_semantic_map = None
             full_semantic_map = None
@@ -139,6 +171,9 @@ class Dataset(torch.utils.data.Dataset):
 
         # load edge
         # edge = self.load_edge(img_gray, index, mask)
+
+        # NOTE: Disable horizonNet postprocessing
+        return self.to_tensor(img), self.to_tensor(mask), torch.FloatTensor(), self.to_tensor(empty)
 
         # load layout
         if self.training:
@@ -264,10 +299,10 @@ class Dataset(torch.utils.data.Dataset):
 
         # refer to PanoDR mask generator
         if mask_type == 7:
-            if self.training:
-                self._min_mask_area, self._max_mask_area = 0.06, 0.8
-            else:
-                self._min_mask_area, self._max_mask_area = 0.01, 0.8
+            # if self.training:
+            #     self._min_mask_area, self._max_mask_area = 0.06, 0.8
+            # else:
+            #     self._min_mask_area, self._max_mask_area = 0.01, 0.8
 
             objects_empty, objects_full = self._extract_scene_objects(empty_semantic_map, full_semantic_map)
             candidate_objects_for_removal = self._select_candidates(objects_empty, objects_full)
@@ -321,6 +356,36 @@ class Dataset(torch.utils.data.Dataset):
 
                 coverage = [np.sum(m * object_mask) for m in masks]
                 mask = masks[np.argmax(coverage)]
+
+        if mask_type == 9:
+            mask = np.zeros((imgh, imgw), np.uint8)
+            r = self.np_rng.normal(loc=0.5, scale=0.05)
+            r = np.clip(r, 0.3, 0.7)
+            mh, mw = int(imgh * r), int(imgw * r)
+
+            object_mask = empty_semantic_map == 0
+
+            grid_size = (2, 2)
+            grid_h, grid_w = int(imgh / grid_size[0]), int(imgw / grid_size[1])
+
+            masks = []
+            for y in range(grid_size[0]):
+                for x in range(grid_size[1]):
+                    ys, xs = np.where(object_mask[y * grid_h:y * grid_h + grid_h, x * grid_w:x * grid_w + grid_w])
+                    if len(ys) != 0:
+                        rand_i = self.rng.randint(0, len(ys))
+                        masks.append(self.create_mask_center(ys[rand_i], xs[rand_i], mh, mw, imgh, imgw))
+
+            if len(masks) > 0:
+                coverage = [np.sum(m * object_mask) for m in masks]
+                mask = masks[np.argmax(coverage)]
+            else:
+                rand_y, rand_x = self.rng.randint(int(mh / 4), imgh - int(mh / 4)), self.rng.randint(int(mw / 4), imgw - int(mw / 4))
+                mask = self.create_mask_center(rand_y, rand_x, mh, mw, imgh, imgw)
+
+            # name = self.load_name(index)
+            # cv2.imwrite(f'checkpoints/avoid_open_FULL/masks/{name}.png', np.dstack((np.zeros_like(mask), mask, (1 - object_mask.astype(np.uint8))*255)))
+            # mask = empty_semantic_map
 
         return mask
 

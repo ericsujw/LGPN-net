@@ -2,16 +2,21 @@ MODE: 2             # 1: train, 2: test, 3: eval
 MASK: 7             # 1: random block, 2: half, 3: external, 4: (external, random block), 5: (external, random block, half)
 EDGE: 2             # 1: canny, 2: external
 LAYOUT: 1           # 1: GT, 2: horizon-net
-SEAN: 1             # 1: ON, 0: SPADE
+LAYOUT_EDGE: 1      # 1: USE layout edge in input, 0: DON'T USE layout edge in input
+SEAN: 1             # 1: ON, 0: NO modulation
+PLANE: 1            # 1: USE plane-aware normalization, 0: DON'T USE
+PARTIAL: 1          # 1: USE PCONV, 0: DON'T USE PCONV (in zencoder)
 NMS: 1              # 0: no non-max-suppression, 1: applies non-max-suppression on the external edges by multiplying by Canny
 SEED: 11            # random seed
 GPU: [0]            # list of gpu ids
 DEBUG: 0            # turns on debugging mode
 VERBOSE: 0          # turns on verbose mode in the output console
+FURNISHED: 0        # 0: empty room, 1: furnished room
+RESULTS: 
 
 TRAIN_FLIST: ./flists/structured3d_roomtype/structured3d_roomtype/train.flist
 VAL_FLIST: ./flists/structured3d_roomtype/structured3d_roomtype/val.flist
-TEST_FLIST: ./flists/structured3d_roomtype/structured3d_roomtype/test.txt
+TEST_FLIST: 
 
 TRAIN_EDGE_FLIST: ./flists/structured3d_roomtype/structured3d_roomtype/train.flist
 VAL_EDGE_FLIST: ./flists/structured3d_roomtype/structured3d_roomtype/val.flist
@@ -23,7 +28,7 @@ TEST_MASK_FLIST:
 
 TRAIN_LAYOUT_FLIST: 
 VAL_LAYOUT_FLIST:
-TEST_LAYOUT_FLIST: ../panodr_testingset/gt_layout
+TEST_LAYOUT_FLIST: 
 
 LR: 0.0001                    # learning rate
 D2G_LR: 0.1                   # discriminator/generator learning rate ratio
@@ -44,7 +49,7 @@ INPAINT_ADV_LOSS_WEIGHT: 0.1  # adversarial loss weight
 GAN_LOSS: nsgan               # nsgan | lsgan | hinge
 GAN_POOL_SIZE: 0              # fake images pool size
 
-SAVE_INTERVAL: 2000           # how many iterations to wait before saving model (0: never)
+SAVE_INTERVAL: 1000           # how many iterations to wait before saving model (0: never)
 SAMPLE_INTERVAL: 1000         # how many iterations to wait before sampling (0: never)
 SAMPLE_SIZE: 8               # number of images to sample
 EVAL_INTERVAL: 5000              # how many iterations to wait before model evaluation (0: never)

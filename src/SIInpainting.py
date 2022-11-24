@@ -175,6 +175,15 @@ class SIInpainting():
         self.model.eval()
 
         create_dir(self.results_path)
+        
+        gt_path = os.path.join(self.results_path, 'gt')
+        create_dir(gt_path)
+
+        mask_path = os.path.join(self.results_path, 'mask')
+        create_dir(mask_path)
+
+        pred_path = os.path.join(self.results_path, 'pred')
+        create_dir(pred_path)
 
         test_loader = DataLoader(
             dataset=self.test_dataset,
@@ -202,12 +211,16 @@ class SIInpainting():
             output_s = self.postprocess(outputs)[0]
             output = self.postprocess(outputs_merged)[0]
             # name = str(index).zfill(5) + '.png'
-            path_1 = os.path.join(self.results_path, name)
-            path_2 = os.path.join(self.results_path,  '2_'+name)
+            # path_1 = os.path.join(self.results_path, name)
+            # path_2 = os.path.join(self.results_path,  '2_'+name)
             
             print(index, name)
+
+            imsave(self.postprocess(images)[0], os.path.join(gt_path, name))
+            imsave(self.postprocess(masks)[0], os.path.join(mask_path, name))
+            imsave(output, os.path.join(pred_path, name))
             
-            imsave(output, path_1)
+            # imsave(output, path_1)
             # imsave(output_s, path_2)
             #imsave(self.postprocess(layout_guidence)[0],os.path.join(self.results_path,'layout_guidence', name))
             #imsave(self.postprocess(seg)[0],os.path.join(self.results_path,'seg', name))
@@ -307,3 +320,4 @@ class SIInpainting():
         img = img * 255
         img = img.permute(0, 2, 3, 1)
         return img.int()
+    

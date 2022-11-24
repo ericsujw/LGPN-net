@@ -498,7 +498,9 @@ class SIInpaintingModel(BaseModel):
             y_bon, y_cor = self.horizon_net(images_masked_1024_512)
 
             ### get 3-class & plane-wise instance map
-            seg, seg_p, layout_guidence = self.layout_p_map_post_proc(images_masked_1024_512, y_bon, y_cor, type='one')
+            # seg, seg_p, layout_guidence = self.layout_p_map_post_proc(images_masked_1024_512, y_bon, y_cor, type='one')
+            # NOTE: Disable horizonNet postprocessing
+            seg, seg_p, layout_guidence = self.layout_p_map(images_masked_1024_512, y_bon, y_cor, type='one')
         else:
             seg, seg_p, layout_guidence = torch.split(layout, [3, 100, 1], dim=1)
 
