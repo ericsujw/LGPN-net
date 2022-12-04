@@ -64,11 +64,6 @@
     </div>
     <div class="wf-section">
         <div class="w-container">
-            <h2 class="heading-2">Overview Video</h2>
-        </div>
-    </div>
-    <div class="wf-section">
-        <div class="w-container">
             <h2 class="heading-2">Abstract</h2>
             <p class="paragraph-5">We present an end-to-end deep learning framework for indoor panoramic image
                 inpainting. Although previous inpainting methods have shown impressive performance on natural
@@ -81,6 +76,239 @@
                 local texture restoration from adjacent room structures (e.g., ceiling, floor, and walls). Experimental
                 results show that our work outperforms the current state-of-the-art methods on a public panoramic
                 dataset quantitatively and qualitatively.</p>
+        </div>
+    </div>
+    <!-- <div class="wf-section">
+        <div class="w-container">
+            <h2 class="heading-2">Overview Video</h2>
+        </div>
+    </div> -->
+    <div class="wf-section">
+        <div class="w-container">
+            <h2 class="heading-2">Methodology</h2>
+            <img src="./assets/arc_overview.png" loading="lazy" alt="">
+            <p class="paragraph-5">
+                <strong>Architecture overview.</strong>Our network architecture follows the conventional generative adversarial 
+                network with an encoder-decoder scheme supervised by low and high-level loss functions and a discriminator. 
+                Given a masked indoor panoramic image <strong>I<sub>in</sub></strong> with a corresponding mask <strong>M</strong>, 
+                our system uses an off-the-shelf layout prediction network to predicts a layout map. The low-level boundary lines 
+                in <strong>L<sub>m</sub></strong> serve as a conditional input to our network to assist the inpainting. Then, we 
+                compute two semantic segmentation maps from the layout map <strong>L<sub>m</sub></strong>, declared 
+                <strong>L<sub>3-class</sub></strong> and <strong>L<sub>p-wise</sub></strong>, where the latter is used to generate 
+                plane-wise style codes for ceiling, floor, and individual walls. Finally, these per plane style codes, together with 
+                <strong>L<sub>3-class</sub></strong>, are fed to a structural plane-aware normalization module to constrain the inpainting.</p>
+            <img src="./assets/arc_pa_normalization.png" loading="lazy" alt="">
+            <p class="paragraph-5">
+                <strong>Plane-aware normalization.</strong>Given an incomplete indoor panoramic image <strong>I<sub>in</sub></strong> with mask 
+                <strong>M</strong>, we first predict two normalization values <em>&beta;</em> and <em>&gamma;</em> through several partial convolution 
+                blocks and a plane-wise average pooling based on the plane-wise segmentation map <strong>L<sub>p-wise</sub></strong>. Second, we predict 
+                another set of normalization values <em>&beta;'</em> and <em>&gamma;'</em> through several vanilla convolution blocks based on the 3-class 
+                segmentation map <strong>L<sub>3-class</sub></strong>. The final normalization values are thus computed using the weighted sum weighted by 
+                learnable parameters <em>&alpha;<sub>&beta;</sub></em> and <em>&alpha;<sub>&gamma;</sub></em>.</p>
+        </div>
+    </div>
+    <div class="wf-section">
+        <div class="container-2 w-container">
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_1_input.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_1_EC.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_1_LISK.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_1_PanoDR.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_1_Ours.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_1_GT.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_1_layout.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_1_EC_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_1_LISK_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_1_PanoDR_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_1_Ours_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_1_GT_zoom.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_2_input.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_2_EC.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_2_LISK.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_2_PanoDR.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_2_Ours.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_2_GT.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_2_layout.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_2_EC_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_2_LISK_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_2_PanoDR_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_2_Ours_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_2_GT_zoom.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_3_input.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_3_EC.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_3_LISK.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_3_PanoDR.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_3_Ours.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_3_GT.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_3_layout.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_3_EC_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_3_LISK_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_3_PanoDR_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_3_Ours_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_3_GT_zoom.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_input.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_EC.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_LISK.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_PanoDR.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_Ours.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_GT.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_layout.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_EC_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_LISK_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_PanoDR_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_Ours_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_GT_zoom.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_input.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_EC.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_LISK.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_PanoDR.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_Ours.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_GT.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_layout.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_EC_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_LISK_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_PanoDR_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_Ours_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_GT_zoom.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_input.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_EC.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_LISK.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_PanoDR.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_Ours.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_GT.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_layout.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_EC_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_LISK_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_PanoDR_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_Ours_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_GT_zoom.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_input.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_EC.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_LISK.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_PanoDR.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_Ours.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_GT.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_layout.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_EC_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_LISK_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_PanoDR_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_Ours_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_GT_zoom.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_input.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_EC.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_LISK.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_PanoDR.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_Ours.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_GT.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_layout.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_EC_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_LISK_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_PanoDR_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_Ours_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_4_GT_zoom.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_5_input.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_5_EC.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_5_LISK.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_5_PanoDR.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_5_Ours.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_5_GT.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_5_layout.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_5_EC_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_5_LISK_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_5_PanoDR_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_5_Ours_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_5_GT_zoom.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_6_input.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_6_EC.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_6_LISK.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_6_PanoDR.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_6_Ours.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_6_GT.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_6_layout.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_6_EC_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_6_LISK_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_6_PanoDR_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_6_Ours_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_6_GT_zoom.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_7_input.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_7_EC.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_7_LISK.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_7_PanoDR.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_7_Ours.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_7_GT.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_7_layout.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_7_EC_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_7_LISK_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_7_PanoDR_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_7_Ours_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_7_GT_zoom.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_8_input.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_8_EC.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_8_LISK.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_8_PanoDR.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_8_Ours.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_8_GT.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_8_layout.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_8_EC_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_8_LISK_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_8_PanoDR_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_8_Ours_zoom.png" loading="lazy" alt=""></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><img src="./assets/Figure_4/Case_8_GT_zoom.png" loading="lazy" alt=""></div>
+            </div>
+            <div class="w-row" style="padding-bottom: 1px;">
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><center>Input / Layout</center></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><center><a href="https://arxiv.org/abs/1901.00212" class="link-2">Nazeri et al.</a></center></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><center><a href="https://arxiv.org/abs/2002.04170" class="link-2">Yang et al.</a></center></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><center><a href="https://openaccess.thecvf.com/content/CVPR2021W/OmniCV/papers/Gkitsas_PanoDR_Spherical_Panorama_Diminished_Reality_for_Indoor_Scenes_CVPRW_2021_paper.pdf" class="link-2">Gkitsas et al.</a></center></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><center><a href="#" class="link-2">Ours</a></center></div>
+                <div class="column-12 w-col w-col-2" style="padding-left: 1px; padding-right: 1px"><center>GT</center></div>
+            </div>
         </div>
     </div>
     <script src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js?site=63723c9d51616920df03e43f"
