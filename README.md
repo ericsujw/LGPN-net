@@ -56,12 +56,10 @@ python test.py --checkpoint <checkpoint_dir> --input <input dir or file> --mask 
 ```
 The path of the training data set defined in `config.yml.example` uses the [Structured3D] official flist. Note that format(e.g. scene_id/2D_rendering/room_id/panorama) must match the settings of the dataloader to accurately locate the dataset.
 
-The testing set we used for evaluation can be found in the following link:
-https://drive.google.com/file/d/1qgt0wPOPTtKmoFHJ0-W9Oz-wtQqFM5iX/view?usp=share_link
+The testing set we used for evaluation can be found in the link [here](https://cgv.cs.nthu.edu.tw/LGPN-net_data/testingset.zip):
 
 ## Pretrained model
-Download link:
-https://drive.google.com/file/d/1J9ZgPxZCbuWrRDaIngvM2T65An-cmVdb/view?usp=share_link
+[Download link](https://cgv.cs.nthu.edu.tw/LGPN-net_data/LGPN-net.zip):
 
 Please unzip to your project folder.
 In fact, only the pre-trained weight files is what you need, and other dependent files will be automatically downloaded when the program is executed.
