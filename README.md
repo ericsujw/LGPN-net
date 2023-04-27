@@ -73,3 +73,17 @@ In fact, only the pre-trained weight files is what you need, and other dependent
    [Partial convolution]: <https://github.com/NVIDIA/partialconv>
    [Structured3D]: <https://github.com/bertjiazheng/Structured3D>
    [HorizonNet]: <https://github.com/sunset1995/HorizonNet>
+   
+## Citation
+```
+@InProceedings{10.1007/978-3-031-26351-4_26,
+author="Gao, Chao-Chen
+and Chen, Cheng-Hsiu
+and Su, Jheng-Wei
+and Chu, Hung-Kuo",
+title="Layout-Guided Indoor Panorama Inpainting with Plane-Aware Normalization",
+booktitle="Computer Vision -- ACCV 2022",
+year="2023",
+pages="425--441"
+}
+```
