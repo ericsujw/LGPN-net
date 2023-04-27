@@ -75,15 +75,24 @@ In fact, only the pre-trained weight files is what you need, and other dependent
    [HorizonNet]: <https://github.com/sunset1995/HorizonNet>
    
 ## Citation
+If you use this code for your research, please cite the following:
 ```
 @InProceedings{10.1007/978-3-031-26351-4_26,
 author="Gao, Chao-Chen
 and Chen, Cheng-Hsiu
 and Su, Jheng-Wei
 and Chu, Hung-Kuo",
+editor="Wang, Lei
+and Gall, Juergen
+and Chin, Tat-Jun
+and Sato, Imari
+and Chellappa, Rama",
 title="Layout-Guided Indoor Panorama Inpainting with Plane-Aware Normalization",
 booktitle="Computer Vision -- ACCV 2022",
 year="2023",
-pages="425--441"
+publisher="Springer Nature Switzerland",
+address="Cham",
+pages="425--441",
+isbn="978-3-031-26351-4"
 }
 ```
